@@ -27,6 +27,11 @@ def load_config():
 def load_dataset(config):
     """
     Load dataset using absolute project paths.
+
+    Optimized version:
+    - loads only required columns
+    - reduces RAM usage
+    - improves loading speed
     """
 
     project_root = Path(__file__).resolve().parents[2]
@@ -43,7 +48,52 @@ def load_dataset(config):
 
     print(f"\nLoading dataset from:\n{data_path}\n")
 
-    df = pd.read_csv(data_path)
+    required_columns = [
+
+        # Target
+        "Severity",
+
+        # Time
+        "Start_Time",
+
+        # Weather
+        "Temperature(F)",
+        "Humidity(%)",
+        "Pressure(in)",
+        "Visibility(mi)",
+        "Wind_Speed(mph)",
+        "Weather_Condition",
+
+        # Road Features
+        "Amenity",
+        "Bump",
+        "Crossing",
+        "Give_Way",
+        "Junction",
+        "No_Exit",
+        "Railway",
+        "Roundabout",
+        "Station",
+        "Stop",
+        "Traffic_Calming",
+        "Traffic_Signal",
+
+        # Day/Night
+        "Sunrise_Sunset",
+
+        # Location
+        "State",
+
+        # Coordinates
+        "Start_Lat",
+        "Start_Lng"
+    ]
+
+    df = pd.read_csv(
+        data_path,
+        usecols=required_columns,
+        low_memory=True
+    )
 
     print("\nDataset loaded successfully.\n")
 
