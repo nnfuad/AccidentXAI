@@ -7,8 +7,8 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Notebook 04: Boosting Models\n",
-    "Training and evaluating gradient boosting models (XGBoost, LightGBM, CatBoost)"
+    "# Notebook 06: SHAP Analysis\n",
+    "Model interpretability using SHAP (SHapley Additive exPlanations)"
    ]
   },
   {
@@ -27,6 +27,7 @@ notebook_content = {
     "import sys\n",
     "from pathlib import Path\n",
     "sys.path.append(str(Path().resolve().parent))\n",
+    "import pandas as pd\n",
     "from src.data.data_loader import (\n",
     "    load_config,\n",
     "    load_dataset,\n",
@@ -49,19 +50,17 @@ notebook_content = {
     "    apply_smote\n",
     ")\n",
     "from src.models.boosting_models import (\n",
-    "    train_xgboost,\n",
-    "    train_lightgbm,\n",
-    "    train_catboost\n",
+    "    train_xgboost\n",
     ")\n",
-    "from src.models.baseline_models import (\n",
-    "    generate_predictions\n",
+    "from src.visualization.shap_visualizer import (\n",
+    "    create_tree_explainer,\n",
+    "    compute_shap_values,\n",
+    "    plot_shap_summary,\n",
+    "    plot_shap_dependence,\n",
+    "    plot_shap_waterfall\n",
     ")\n",
-    "from src.evaluation.metrics import (\n",
-    "    evaluate_model,\n",
-    "    plot_confusion_matrix\n",
-    ")\n",
-    "from src.evaluation.cross_validation import (\n",
-    "    run_cross_validation\n",
+    "from src.evaluation.feature_importance import (\n",
+    "    compute_mean_shap_importance\n",
     ")"
    ]
   },
@@ -97,8 +96,8 @@ notebook_content = {
     "    y_train\n",
     ")\n",
     "\n",
-    "print(f\"\\n✓ Data prepared successfully!\")\n",
-    "print(f\"  Training set: {X_train_smote.shape}\")\n",
+    "print(f\"✓ Data prepared successfully!\")\n",
+    "print(f\"  Training set (SMOTE): {X_train_smote.shape}\")\n",
     "print(f\"  Test set: {X_test.shape}\")"
    ]
   },
@@ -118,14 +117,16 @@ notebook_content = {
     "xgb_model = train_xgboost(\n",
     "    X_train_smote,\n",
     "    y_train_smote\n",
-    ")"
+    ")\n",
+    "\n",
+    "print(\"✓ XGBoost model trained successfully\")"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 4 — XGBoost Predictions"
+    "## Cell 4 — Create SHAP Sample"
    ]
   },
   {
@@ -134,17 +135,31 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "xgb_preds, xgb_probs = generate_predictions(\n",
-    "    xgb_model,\n",
-    "    X_test\n",
-    ")"
+    "X_shap_sample = X_test.sample(\n",
+    "    n=1000,\n",
+    "    random_state=42\n",
+    ")\n",
+    "X_shap_sample.shape"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 5 — XGBoost Evaluation"
+    "## Cell 5 — IMPORTANT RESEARCH INSIGHT\n",
+    "\n",
+    "> **Never compute SHAP on entire huge datasets initially.**\n",
+    "> \n",
+    "> SHAP is computationally expensive.\n",
+    "> \n",
+    "> Sampling is common and acceptable practice."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 6 — Create Explainer"
    ]
   },
   {
@@ -153,19 +168,18 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "evaluate_model(\n",
-    "    y_test,\n",
-    "    xgb_preds,\n",
-    "    xgb_probs,\n",
-    "    model_name=\"XGBoost\"\n",
-    ")"
+    "explainer = create_tree_explainer(\n",
+    "    xgb_model\n",
+    ")\n",
+    "\n",
+    "print(\"✓ SHAP TreeExplainer created\")"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 6 — XGBoost Confusion Matrix"
+    "## Cell 7 — Compute SHAP Values"
    ]
   },
   {
@@ -174,18 +188,19 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "plot_confusion_matrix(\n",
-    "    y_test,\n",
-    "    xgb_preds,\n",
-    "    model_name=\"XGBoost\"\n",
-    ")"
+    "shap_values = compute_shap_values(\n",
+    "    explainer,\n",
+    "    X_shap_sample\n",
+    ")\n",
+    "\n",
+    "print(\"✓ SHAP values computed successfully\")"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 7 — XGBoost Cross Validation"
+    "## Cell 8 — SHAP Summary Plot"
    ]
   },
   {
@@ -194,10 +209,9 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "run_cross_validation(\n",
-    "    xgb_model,\n",
-    "    X_train_smote,\n",
-    "    y_train_smote\n",
+    "plot_shap_summary(\n",
+    "    shap_values,\n",
+    "    X_shap_sample\n",
     ")"
    ]
   },
@@ -205,7 +219,23 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 8 — Train LightGBM"
+    "## Cell 9 — What You Should Observe\n",
+    "\n",
+    "**Features at top are most influential.**\n",
+    "\n",
+    "| Color | Meaning |\n",
+    "|-------|---------|\n",
+    "| Red | high feature value |\n",
+    "| Blue | low feature value |\n",
+    "\n",
+    "**Horizontal spread shows impact magnitude.**"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 10 — Feature Importance Table"
    ]
   },
   {
@@ -214,17 +244,18 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "lgbm_model = train_lightgbm(\n",
-    "    X_train_smote,\n",
-    "    y_train_smote\n",
-    ")"
+    "importance_df = compute_mean_shap_importance(\n",
+    "    shap_values,\n",
+    "    X_shap_sample\n",
+    ")\n",
+    "importance_df.head(15)"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 9 — LightGBM Predictions"
+    "## Cell 11 — Dependence Plot"
    ]
   },
   {
@@ -233,9 +264,10 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "lgbm_preds, lgbm_probs = generate_predictions(\n",
-    "    lgbm_model,\n",
-    "    X_test\n",
+    "plot_shap_dependence(\n",
+    "    shap_values,\n",
+    "    X_shap_sample,\n",
+    "    feature_name=\"Visibility(mi)\"\n",
     ")"
    ]
   },
@@ -243,7 +275,29 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 10 — LightGBM Evaluation"
+    "## Cell 12 — What Dependence Plot Means\n",
+    "\n",
+    "You are analyzing:\n",
+    "\n",
+    "**How changing visibility changes model prediction**\n",
+    "\n",
+    "This becomes scientifically interesting.\n",
+    "\n",
+    "---\n",
+    "\n",
+    "**Interpretation Guide:**\n",
+    "- X-axis: Feature value (Visibility in miles)\n",
+    "- Y-axis: SHAP value (Impact on prediction)\n",
+    "- Positive SHAP: Increases accident severity\n",
+    "- Negative SHAP: Decreases accident severity\n",
+    "- Color (if shown): Secondary feature interaction"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 13 — Local Explanation"
    ]
   },
   {
@@ -252,11 +306,11 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "evaluate_model(\n",
-    "    y_test,\n",
-    "    lgbm_preds,\n",
-    "    lgbm_probs,\n",
-    "    model_name=\"LightGBM\"\n",
+    "plot_shap_waterfall(\n",
+    "    explainer,\n",
+    "    shap_values,\n",
+    "    X_shap_sample,\n",
+    "    sample_index=0\n",
     ")"
    ]
   },
@@ -264,7 +318,9 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 11 — Train CatBoost"
+    "## Optional Cell 14 — Additional SHAP Analysis\n",
+    "\n",
+    "Explore more SHAP visualizations"
    ]
   },
   {
@@ -273,50 +329,19 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "cat_model = train_catboost(\n",
-    "    X_train_smote,\n",
-    "    y_train_smote\n",
-    ")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 12 — CatBoost Predictions"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "cat_preds, cat_probs = generate_predictions(\n",
-    "    cat_model,\n",
-    "    X_test\n",
-    ")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 13 — CatBoost Evaluation"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "evaluate_model(\n",
-    "    y_test,\n",
-    "    cat_preds,\n",
-    "    cat_probs,\n",
-    "    model_name=\"CatBoost\"\n",
-    ")"
+    "# Bar plot of feature importance\n",
+    "import matplotlib.pyplot as plt\n",
+    "import shap\n",
+    "\n",
+    "# Summary bar plot\n",
+    "shap.summary_plot(shap_values, X_shap_sample, plot_type=\"bar\")\n",
+    "plt.tight_layout()\n",
+    "plt.show()\n",
+    "\n",
+    "# Force plot for first prediction\n",
+    "shap.initjs()\n",
+    "shap.force_plot(explainer.expected_value, shap_values[0,:], X_shap_sample.iloc[0,:], matplotlib=True)\n",
+    "plt.show()"
    ]
   }
  ],
@@ -347,20 +372,19 @@ notebook_content = {
 os.makedirs('notebooks', exist_ok=True)
 
 # Save the notebook
-with open('notebooks/04_boosting_models.ipynb', 'w') as f:
+with open('notebooks/06_shap_analysis.ipynb', 'w') as f:
     json.dump(notebook_content, f, indent=1)
 
-print("✓ Notebook created successfully at notebooks/04_boosting_models.ipynb")
+print("✓ Notebook created successfully at notebooks/06_shap_analysis.ipynb")
 print("\n📋 This notebook requires the following modules to be implemented:")
 print("  - src/data/preprocessing.py (basic_preprocessing_pipeline)")
 print("  - src/features/feature_engineering.py (feature_engineering_pipeline)")
 print("  - src/features/encoder.py (encode_categorical_columns)")
 print("  - src/models/train_test_split.py (temporal split functions)")
 print("  - src/models/smote_pipeline.py (apply_smote)")
-print("  - src/models/boosting_models.py (train_xgboost, train_lightgbm, train_catboost)")
-print("  - src/models/baseline_models.py (generate_predictions)")
-print("  - src/evaluation/metrics.py (evaluate_model, plot_confusion_matrix)")
-print("  - src/evaluation/cross_validation.py (run_cross_validation)")
+print("  - src/models/boosting_models.py (train_xgboost)")
+print("  - src/visualization/shap_visualizer.py (SHAP visualization functions)")
+print("  - src/evaluation/feature_importance.py (compute_mean_shap_importance)")
 print("\n⚠️  Make sure to install required packages:")
-print("  pip install xgboost lightgbm catboost scikit-learn imbalanced-learn")
+print("  pip install shap xgboost")
 print("\n⚠️  Make sure to create these modules before running the notebook!")
