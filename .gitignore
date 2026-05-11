@@ -34,6 +34,10 @@ venv/
 *.log
 
 # =========================
+# notebook writing python scripts
+# =========================
+py.py
+# =========================
 # Data files
 # Keep raw datasets out of GitHub
 # =========================
@@ -75,3 +79,4 @@ htmlcov/
 # Environment configs
 # =========================
 .env.local
+
