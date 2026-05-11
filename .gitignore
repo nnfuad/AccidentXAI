@@ -1,0 +1,77 @@
+# =========================
+# Python cache
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# =========================
+# Jupyter Notebook
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Virtual Environments
+# =========================
+venv/
+.env/
+.venv/
+
+# =========================
+# MacOS system files
+# =========================
+.DS_Store
+
+# =========================
+# VSCode / IDE
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Data files
+# Keep raw datasets out of GitHub
+# =========================
+data/raw/*
+!data/raw/.gitkeep
+
+data/processed/*
+!data/processed/.gitkeep
+
+# =========================
+# Reports / generated outputs
+# =========================
+reports/figures/*
+!reports/figures/.gitkeep
+
+reports/tables/*
+!reports/tables/.gitkeep
+
+# =========================
+# Model artifacts
+# =========================
+models/
+*.pkl
+*.joblib
+*.h5
+
+# =========================
+# Pytest
+# =========================
+.pytest_cache/
+
+# =========================
+# Coverage reports
+# =========================
+htmlcov/
+.coverage
+
+# =========================
+# Environment configs
+# =========================
+.env.local

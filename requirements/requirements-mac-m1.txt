@@ -1,0 +1,54 @@
+# =========================
+# Core Data Science
+# =========================
+numpy
+pandas
+scipy
+
+# =========================
+# Visualization
+# =========================
+matplotlib
+seaborn
+plotly
+
+# =========================
+# Machine Learning
+# =========================
+scikit-learn
+imbalanced-learn
+
+# =========================
+# Gradient Boosting Models
+# =========================
+xgboost
+lightgbm
+catboost
+
+# =========================
+# Explainable AI
+# =========================
+shap
+
+# =========================
+# Notebook Environment
+# =========================
+jupyter
+notebook
+ipywidgets
+
+# =========================
+# Utilities
+# =========================
+tqdm
+pyyaml
+
+# =========================
+# Statistical Analysis
+# =========================
+statsmodels
+
+# =========================
+# Optional
+# =========================
+openpyxl
