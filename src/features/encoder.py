@@ -7,6 +7,8 @@ This module handles:
 - model-ready feature matrices
 """
 
+import numpy as np
+
 from sklearn.preprocessing import LabelEncoder
 
 
@@ -34,27 +36,32 @@ def encode_categorical_columns(
 
         encoder = LabelEncoder()
 
-        # Convert to string for safety
+        # Convert safely to string
         X_train[col] = X_train[col].astype(str)
 
         X_test[col] = X_test[col].astype(str)
 
-        # Fit ONLY on train
+        # Fit ONLY on training data
         encoder.fit(X_train[col])
 
-        # Transform train
+        # Transform training data
         X_train[col] = encoder.transform(
             X_train[col]
         )
 
-        # Handle unseen labels safely
-        unseen_labels = set(X_test[col]) - set(encoder.classes_)
+        # Handle unseen labels in test set
+        unseen_labels = np.setdiff1d(
+            X_test[col].unique(),
+            encoder.classes_
+        )
 
-        if unseen_labels:
+        if len(unseen_labels) > 0:
 
-            encoder.classes_ = list(encoder.classes_) + list(unseen_labels)
+            encoder.classes_ = np.concatenate(
+                [encoder.classes_, unseen_labels]
+            )
 
-        # Transform test
+        # Transform test data
         X_test[col] = encoder.transform(
             X_test[col]
         )
