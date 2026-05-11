@@ -1,10 +1,5 @@
 """
 Data loading utilities for AccidentXAI.
-
-This module handles:
-- reading datasets
-- optional sampling
-- basic dataset inspection
 """
 
 from pathlib import Path
@@ -13,12 +8,17 @@ import pandas as pd
 import yaml
 
 
-def load_config(config_path="configs/config.yaml"):
+def load_config():
     """
-    Load YAML configuration file.
+    Load YAML config file using absolute paths.
     """
 
+    project_root = Path(__file__).resolve().parents[2]
+
+    config_path = project_root / "configs" / "config.yaml"
+
     with open(config_path, "r") as file:
+
         config = yaml.safe_load(file)
 
     return config
@@ -26,12 +26,17 @@ def load_config(config_path="configs/config.yaml"):
 
 def load_dataset(config):
     """
-    Load accident dataset using config paths.
+    Load dataset using absolute project paths.
     """
 
-    data_path = Path(config["paths"]["raw_data"])
+    project_root = Path(__file__).resolve().parents[2]
+
+    relative_path = config["paths"]["raw_data"]
+
+    data_path = project_root / relative_path
 
     if not data_path.exists():
+
         raise FileNotFoundError(
             f"Dataset not found at: {data_path}"
         )
@@ -40,7 +45,7 @@ def load_dataset(config):
 
     df = pd.read_csv(data_path)
 
-    print("Dataset loaded successfully.\n")
+    print("\nDataset loaded successfully.\n")
 
     return df
 
@@ -58,10 +63,12 @@ def sample_dataset(df, config):
     sample_size = config["sampling"]["sample_size"]
 
     if sample_size >= len(df):
-        print("Requested sample size exceeds dataset size.")
+
+        print("Requested sample exceeds dataset size.")
+
         return df
 
-    print(f"Sampling {sample_size} rows...\n")
+    print(f"\nSampling {sample_size} rows...\n")
 
     sampled_df = df.sample(
         n=sample_size,
@@ -73,7 +80,7 @@ def sample_dataset(df, config):
 
 def dataset_overview(df):
     """
-    Print basic dataset information.
+    Print dataset overview.
     """
 
     print("=" * 50)
@@ -86,14 +93,20 @@ def dataset_overview(df):
     print(df.columns.tolist())
 
     print("\nMissing Values:\n")
-    print(df.isnull().sum().sort_values(ascending=False).head(15))
+    print(
+        df.isnull()
+        .sum()
+        .sort_values(ascending=False)
+        .head(15)
+    )
 
     print("\nData Types:\n")
     print(df.dtypes)
 
-    print("\nClass Distribution:\n")
+    print("\nSeverity Distribution:\n")
 
     if "Severity" in df.columns:
+
         print(df["Severity"].value_counts())
 
     print("\nOverview completed.\n")
