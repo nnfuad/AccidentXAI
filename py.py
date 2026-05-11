@@ -7,8 +7,8 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Notebook 02: Preprocessing & Feature Engineering\n",
-    "Data preprocessing, feature engineering, and train-test preparation"
+    "# Notebook 03: Model Baselines\n",
+    "Training and evaluating baseline models (Logistic Regression & Random Forest)"
    ]
   },
   {
@@ -27,7 +27,6 @@ notebook_content = {
     "import sys\n",
     "from pathlib import Path\n",
     "sys.path.append(str(Path().resolve().parent))\n",
-    "import pandas as pd\n",
     "from src.data.data_loader import (\n",
     "    load_config,\n",
     "    load_dataset,\n",
@@ -39,13 +38,24 @@ notebook_content = {
     "from src.features.feature_engineering import (\n",
     "    feature_engineering_pipeline\n",
     ")\n",
+    "from src.features.encoder import (\n",
+    "    encode_categorical_columns\n",
+    ")\n",
     "from src.models.train_test_split import (\n",
     "    temporal_train_test_split,\n",
-    "    split_features_target,\n",
-    "    check_class_distribution\n",
+    "    split_features_target\n",
     ")\n",
     "from src.models.smote_pipeline import (\n",
     "    apply_smote\n",
+    ")\n",
+    "from src.models.baseline_models import (\n",
+    "    train_logistic_regression,\n",
+    "    train_random_forest,\n",
+    "    generate_predictions\n",
+    ")\n",
+    "from src.evaluation.metrics import (\n",
+    "    evaluate_model,\n",
+    "    plot_confusion_matrix\n",
     ")"
    ]
   },
@@ -62,8 +72,7 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "config = load_config()\n",
-    "config"
+    "config = load_config()"
    ]
   },
   {
@@ -80,22 +89,6 @@ notebook_content = {
    "outputs": [],
    "source": [
     "df = load_dataset(config)\n",
-    "df.shape"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 4 — Sample Dataset"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
     "df = sample_dataset(df, config)\n",
     "df.shape"
    ]
@@ -104,7 +97,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 5 — Run Preprocessing"
+    "## Cell 4 — Preprocessing"
    ]
   },
   {
@@ -114,47 +107,14 @@ notebook_content = {
    "outputs": [],
    "source": [
     "df = basic_preprocessing_pipeline(df)\n",
-    "df.head()"
+    "df = feature_engineering_pipeline(df)"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 6 — Feature Engineering"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "df = feature_engineering_pipeline(df)\n",
-    "df.head()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 7 — Check Engineered Features"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "df.columns.tolist()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 8 — Temporal Split"
+    "## Cell 5 — Temporal Split"
    ]
   },
   {
@@ -164,9 +124,7 @@ notebook_content = {
    "outputs": [],
    "source": [
     "train_df, test_df = temporal_train_test_split(\n",
-    "    df,\n",
-    "    train_end_year=2021,\n",
-    "    test_year=2022\n",
+    "    df\n",
     ")"
    ]
   },
@@ -174,7 +132,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 9 — Feature/Target Split"
+    "## Cell 6 — Feature/Target Split"
    ]
   },
   {
@@ -193,7 +151,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 10 — Class Distribution"
+    "## Cell 7 — Encoding"
    ]
   },
   {
@@ -202,9 +160,9 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "check_class_distribution(\n",
-    "    y_train,\n",
-    "    y_test\n",
+    "X_train, X_test, encoders = encode_categorical_columns(\n",
+    "    X_train,\n",
+    "    X_test\n",
     ")"
    ]
   },
@@ -212,7 +170,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 11 — Apply SMOTE"
+    "## Cell 8 — SMOTE"
    ]
   },
   {
@@ -231,7 +189,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 12 — Verify Shapes"
+    "## Cell 9 — Logistic Regression Training"
    ]
   },
   {
@@ -240,10 +198,149 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "print(f\"X_train_smote shape: {X_train_smote.shape}\")\n",
-    "print(f\"y_train_smote shape: {y_train_smote.shape}\")\n",
-    "print(f\"\\nOriginal X_train shape: {X_train.shape}\")\n",
-    "print(f\"SMOTE increased samples by: {X_train_smote.shape[0] - X_train.shape[0]} ({((X_train_smote.shape[0] - X_train.shape[0])/X_train.shape[0])*100:.1f}%)\")"
+    "logistic_model = train_logistic_regression(\n",
+    "    X_train_smote,\n",
+    "    y_train_smote\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 10 — Logistic Predictions"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "logistic_preds, logistic_probs = generate_predictions(\n",
+    "    logistic_model,\n",
+    "    X_test\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 11 — Logistic Evaluation"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "evaluate_model(\n",
+    "    y_test,\n",
+    "    logistic_preds,\n",
+    "    logistic_probs,\n",
+    "    model_name=\"Logistic Regression\"\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 12 — Logistic Confusion Matrix"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot_confusion_matrix(\n",
+    "    y_test,\n",
+    "    logistic_preds,\n",
+    "    model_name=\"Logistic Regression\"\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 13 — Random Forest Training"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "rf_model = train_random_forest(\n",
+    "    X_train_smote,\n",
+    "    y_train_smote\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 14 — Random Forest Predictions"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "rf_preds, rf_probs = generate_predictions(\n",
+    "    rf_model,\n",
+    "    X_test\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 15 — Random Forest Evaluation"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "evaluate_model(\n",
+    "    y_test,\n",
+    "    rf_preds,\n",
+    "    rf_probs,\n",
+    "    model_name=\"Random Forest\"\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 16 — Random Forest Confusion Matrix"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot_confusion_matrix(\n",
+    "    y_test,\n",
+    "    rf_preds,\n",
+    "    model_name=\"Random Forest\"\n",
+    ")"
    ]
   }
  ],
@@ -274,13 +371,16 @@ notebook_content = {
 os.makedirs('notebooks', exist_ok=True)
 
 # Save the notebook
-with open('notebooks/02_preprocessing.ipynb', 'w') as f:
+with open('notebooks/03_model_baselines.ipynb', 'w') as f:
     json.dump(notebook_content, f, indent=1)
 
-print("✓ Notebook created successfully at notebooks/02_preprocessing.ipynb")
+print("✓ Notebook created successfully at notebooks/03_model_baselines.ipynb")
 print("\n📋 This notebook requires the following modules to be implemented:")
 print("  - src/data/preprocessing.py (basic_preprocessing_pipeline)")
 print("  - src/features/feature_engineering.py (feature_engineering_pipeline)")
+print("  - src/features/encoder.py (encode_categorical_columns)")
 print("  - src/models/train_test_split.py (temporal split functions)")
 print("  - src/models/smote_pipeline.py (apply_smote)")
+print("  - src/models/baseline_models.py (train_logistic_regression, train_random_forest, generate_predictions)")
+print("  - src/evaluation/metrics.py (evaluate_model, plot_confusion_matrix)")
 print("\n⚠️  Make sure to create these modules before running the notebook!")
