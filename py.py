@@ -7,8 +7,8 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Notebook 03: Model Baselines\n",
-    "Training and evaluating baseline models (Logistic Regression & Random Forest)"
+    "# Notebook 04: Boosting Models\n",
+    "Training and evaluating gradient boosting models (XGBoost, LightGBM, CatBoost)"
    ]
   },
   {
@@ -48,14 +48,20 @@ notebook_content = {
     "from src.models.smote_pipeline import (\n",
     "    apply_smote\n",
     ")\n",
+    "from src.models.boosting_models import (\n",
+    "    train_xgboost,\n",
+    "    train_lightgbm,\n",
+    "    train_catboost\n",
+    ")\n",
     "from src.models.baseline_models import (\n",
-    "    train_logistic_regression,\n",
-    "    train_random_forest,\n",
     "    generate_predictions\n",
     ")\n",
     "from src.evaluation.metrics import (\n",
     "    evaluate_model,\n",
     "    plot_confusion_matrix\n",
+    ")\n",
+    "from src.evaluation.cross_validation import (\n",
+    "    run_cross_validation\n",
     ")"
    ]
   },
@@ -63,7 +69,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 2 — Load Config"
+    "## Cell 2 — Load + Prepare Dataset"
    ]
   },
   {
@@ -72,124 +78,35 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "config = load_config()"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 3 — Load Dataset"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
+    "config = load_config()\n",
     "df = load_dataset(config)\n",
     "df = sample_dataset(df, config)\n",
-    "df.shape"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 4 — Preprocessing"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
     "df = basic_preprocessing_pipeline(df)\n",
-    "df = feature_engineering_pipeline(df)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 5 — Temporal Split"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "train_df, test_df = temporal_train_test_split(\n",
-    "    df\n",
-    ")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 6 — Feature/Target Split"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
+    "df = feature_engineering_pipeline(df)\n",
+    "train_df, test_df = temporal_train_test_split(df)\n",
     "X_train, X_test, y_train, y_test = split_features_target(\n",
     "    train_df,\n",
     "    test_df\n",
-    ")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 7 — Encoding"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
+    ")\n",
     "X_train, X_test, encoders = encode_categorical_columns(\n",
     "    X_train,\n",
     "    X_test\n",
-    ")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 8 — SMOTE"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
+    ")\n",
     "X_train_smote, y_train_smote = apply_smote(\n",
     "    X_train,\n",
     "    y_train\n",
-    ")"
+    ")\n",
+    "\n",
+    "print(f\"\\n✓ Data prepared successfully!\")\n",
+    "print(f\"  Training set: {X_train_smote.shape}\")\n",
+    "print(f\"  Test set: {X_test.shape}\")"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 9 — Logistic Regression Training"
+    "## Cell 3 — Train XGBoost"
    ]
   },
   {
@@ -198,7 +115,7 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "logistic_model = train_logistic_regression(\n",
+    "xgb_model = train_xgboost(\n",
     "    X_train_smote,\n",
     "    y_train_smote\n",
     ")"
@@ -208,7 +125,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 10 — Logistic Predictions"
+    "## Cell 4 — XGBoost Predictions"
    ]
   },
   {
@@ -217,8 +134,8 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "logistic_preds, logistic_probs = generate_predictions(\n",
-    "    logistic_model,\n",
+    "xgb_preds, xgb_probs = generate_predictions(\n",
+    "    xgb_model,\n",
     "    X_test\n",
     ")"
    ]
@@ -227,7 +144,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 11 — Logistic Evaluation"
+    "## Cell 5 — XGBoost Evaluation"
    ]
   },
   {
@@ -238,9 +155,9 @@ notebook_content = {
    "source": [
     "evaluate_model(\n",
     "    y_test,\n",
-    "    logistic_preds,\n",
-    "    logistic_probs,\n",
-    "    model_name=\"Logistic Regression\"\n",
+    "    xgb_preds,\n",
+    "    xgb_probs,\n",
+    "    model_name=\"XGBoost\"\n",
     ")"
    ]
   },
@@ -248,7 +165,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 12 — Logistic Confusion Matrix"
+    "## Cell 6 — XGBoost Confusion Matrix"
    ]
   },
   {
@@ -259,8 +176,8 @@ notebook_content = {
    "source": [
     "plot_confusion_matrix(\n",
     "    y_test,\n",
-    "    logistic_preds,\n",
-    "    model_name=\"Logistic Regression\"\n",
+    "    xgb_preds,\n",
+    "    model_name=\"XGBoost\"\n",
     ")"
    ]
   },
@@ -268,7 +185,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 13 — Random Forest Training"
+    "## Cell 7 — XGBoost Cross Validation"
    ]
   },
   {
@@ -277,7 +194,8 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "rf_model = train_random_forest(\n",
+    "run_cross_validation(\n",
+    "    xgb_model,\n",
     "    X_train_smote,\n",
     "    y_train_smote\n",
     ")"
@@ -287,7 +205,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 14 — Random Forest Predictions"
+    "## Cell 8 — Train LightGBM"
    ]
   },
   {
@@ -296,8 +214,27 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "rf_preds, rf_probs = generate_predictions(\n",
-    "    rf_model,\n",
+    "lgbm_model = train_lightgbm(\n",
+    "    X_train_smote,\n",
+    "    y_train_smote\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 9 — LightGBM Predictions"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "lgbm_preds, lgbm_probs = generate_predictions(\n",
+    "    lgbm_model,\n",
     "    X_test\n",
     ")"
    ]
@@ -306,7 +243,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 15 — Random Forest Evaluation"
+    "## Cell 10 — LightGBM Evaluation"
    ]
   },
   {
@@ -317,9 +254,9 @@ notebook_content = {
    "source": [
     "evaluate_model(\n",
     "    y_test,\n",
-    "    rf_preds,\n",
-    "    rf_probs,\n",
-    "    model_name=\"Random Forest\"\n",
+    "    lgbm_preds,\n",
+    "    lgbm_probs,\n",
+    "    model_name=\"LightGBM\"\n",
     ")"
    ]
   },
@@ -327,7 +264,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 16 — Random Forest Confusion Matrix"
+    "## Cell 11 — Train CatBoost"
    ]
   },
   {
@@ -336,10 +273,49 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "plot_confusion_matrix(\n",
+    "cat_model = train_catboost(\n",
+    "    X_train_smote,\n",
+    "    y_train_smote\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 12 — CatBoost Predictions"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "cat_preds, cat_probs = generate_predictions(\n",
+    "    cat_model,\n",
+    "    X_test\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 13 — CatBoost Evaluation"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "evaluate_model(\n",
     "    y_test,\n",
-    "    rf_preds,\n",
-    "    model_name=\"Random Forest\"\n",
+    "    cat_preds,\n",
+    "    cat_probs,\n",
+    "    model_name=\"CatBoost\"\n",
     ")"
    ]
   }
@@ -371,16 +347,20 @@ notebook_content = {
 os.makedirs('notebooks', exist_ok=True)
 
 # Save the notebook
-with open('notebooks/03_model_baselines.ipynb', 'w') as f:
+with open('notebooks/04_boosting_models.ipynb', 'w') as f:
     json.dump(notebook_content, f, indent=1)
 
-print("✓ Notebook created successfully at notebooks/03_model_baselines.ipynb")
+print("✓ Notebook created successfully at notebooks/04_boosting_models.ipynb")
 print("\n📋 This notebook requires the following modules to be implemented:")
 print("  - src/data/preprocessing.py (basic_preprocessing_pipeline)")
 print("  - src/features/feature_engineering.py (feature_engineering_pipeline)")
 print("  - src/features/encoder.py (encode_categorical_columns)")
 print("  - src/models/train_test_split.py (temporal split functions)")
 print("  - src/models/smote_pipeline.py (apply_smote)")
-print("  - src/models/baseline_models.py (train_logistic_regression, train_random_forest, generate_predictions)")
+print("  - src/models/boosting_models.py (train_xgboost, train_lightgbm, train_catboost)")
+print("  - src/models/baseline_models.py (generate_predictions)")
 print("  - src/evaluation/metrics.py (evaluate_model, plot_confusion_matrix)")
+print("  - src/evaluation/cross_validation.py (run_cross_validation)")
+print("\n⚠️  Make sure to install required packages:")
+print("  pip install xgboost lightgbm catboost scikit-learn imbalanced-learn")
 print("\n⚠️  Make sure to create these modules before running the notebook!")
