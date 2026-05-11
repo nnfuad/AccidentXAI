@@ -1,0 +1,92 @@
+# ==========================================
+# AccidentXAI Configuration File
+# ==========================================
+
+project:
+  name: "AccidentXAI"
+  random_state: 42
+
+# ==========================================
+# Dataset Paths
+# ==========================================
+
+paths:
+  raw_data: "data/raw/US_Accidents_March23.csv"
+  processed_data: "data/processed/processed_accidents.csv"
+
+# ==========================================
+# Target Variable
+# ==========================================
+
+target:
+  column: "Severity"
+
+# ==========================================
+# Temporal Settings
+# ==========================================
+
+temporal:
+  date_column: "Start_Time"
+  train_end_year: 2021
+  test_year: 2022
+
+# ==========================================
+# Sampling
+# ==========================================
+
+sampling:
+  enabled: true
+  sample_size: 100000
+
+# ==========================================
+# Missing Value Handling
+# ==========================================
+
+missing_values:
+  numerical_strategy: "median"
+  categorical_strategy: "most_frequent"
+
+# ==========================================
+# SMOTE Settings
+# ==========================================
+
+smote:
+  enabled: true
+  random_state: 42
+
+# ==========================================
+# Cross Validation
+# ==========================================
+
+cross_validation:
+  folds: 5
+
+# ==========================================
+# Models
+# ==========================================
+
+models:
+  logistic_regression: true
+  random_forest: true
+  xgboost: true
+  lightgbm: true
+  catboost: true
+
+# ==========================================
+# Evaluation Metrics
+# ==========================================
+
+evaluation:
+  scoring:
+    - f1_macro
+    - f1_weighted
+    - precision_weighted
+    - recall_weighted
+    - roc_auc_ovr
+
+# ==========================================
+# SHAP Settings
+# ==========================================
+
+shap:
+  sample_size: 2000
