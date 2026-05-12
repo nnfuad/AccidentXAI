@@ -15,27 +15,18 @@ import shap
 
 
 def compute_yearly_shap_importance(
-
     model,
-
     df,
-
     feature_columns,
-
     encoders,
-
     year_column="Year",
-
     sample_size=500
-
 ):
-
     """
-
     Compute yearly SHAP importance safely.
 
     Applies SAME encoding used during training.
-
+    Uses modern SHAP Explanation API.
     """
 
     print("\nComputing yearly SHAP importance...\n")
@@ -45,9 +36,7 @@ def compute_yearly_shap_importance(
     yearly_results = []
 
     unique_years = sorted(
-
-        df[year_column].unique()
-
+        df[year_column].dropna().unique()
     )
 
     for year in unique_years:
@@ -55,11 +44,14 @@ def compute_yearly_shap_importance(
         print(f"Processing Year: {year}")
 
         yearly_df = df[
-
             df[year_column] == year
-
         ]
 
+        if len(yearly_df) == 0:
+
+            continue
+
+        # Sampling for efficiency
         if len(yearly_df) < sample_size:
 
             sample_df = yearly_df.copy()
@@ -67,67 +59,57 @@ def compute_yearly_shap_importance(
         else:
 
             sample_df = yearly_df.sample(
-
                 n=sample_size,
-
                 random_state=42
-
             )
 
         # Select feature columns only
-
         X_year = sample_df[
-
             feature_columns
-
         ].copy()
 
-        # Apply encoders
-
+        # Apply SAME encoders used during training
         for col, encoder in encoders.items():
+
+            if col not in X_year.columns:
+                continue
 
             X_year[col] = X_year[col].astype(str)
 
             unseen_labels = set(
-
-                X_year[col]
-
+                X_year[col].unique()
             ) - set(encoder.classes_)
 
+            # Extend encoder safely for unseen labels
             if unseen_labels:
 
-                import numpy as np
-
                 encoder.classes_ = np.concatenate(
-
                     [
-
                         encoder.classes_,
-
-                        list(unseen_labels)
-
+                        np.array(list(unseen_labels))
                     ]
-
                 )
 
             X_year[col] = encoder.transform(
-
                 X_year[col]
-
             )
 
-        # Compute SHAP values
-
-        shap_values = explainer.shap_values(
-
+        # Compute SHAP Explanation object
+        shap_explanation = explainer(
             X_year
-
         )
 
+        # Extract SHAP values
+        shap_values = shap_explanation.values
+
+        # Binary classification safety
+        if len(shap_values.shape) == 3:
+
+            shap_values = shap_values[:, :, 1]
+
+        # Mean absolute SHAP importance
         mean_importance = np.abs(
-
             shap_values
-
         ).mean(axis=0)
 
         temp_df = pd.DataFrame({
@@ -142,12 +124,15 @@ def compute_yearly_shap_importance(
 
         yearly_results.append(temp_df)
 
+    if len(yearly_results) == 0:
+
+        raise ValueError(
+            "No yearly SHAP results were generated."
+        )
+
     final_df = pd.concat(
-
         yearly_results,
-
         ignore_index=True
-
     )
 
     return final_df
