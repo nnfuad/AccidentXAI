@@ -7,8 +7,8 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Notebook 07: Temporal SHAP Analysis\n",
-    "Analyzing how feature importance changes over time (feature drift analysis)"
+    "# Notebook 08: Final Pipeline & Model Comparison\n",
+    "Complete model training, evaluation, comparison, and interpretability analysis"
    ]
   },
   {
@@ -49,15 +49,29 @@ notebook_content = {
     "    apply_smote\n",
     ")\n",
     "from src.models.boosting_models import (\n",
-    "    train_xgboost\n",
+    "    train_xgboost,\n",
+    "    train_lightgbm,\n",
+    "    train_catboost\n",
+    ")\n",
+    "from src.models.baseline_models import (\n",
+    "    train_logistic_regression,\n",
+    "    train_random_forest,\n",
+    "    generate_predictions\n",
+    ")\n",
+    "from src.evaluation.model_comparison import (\n",
+    "    ModelComparison\n",
+    ")\n",
+    "from src.visualization.shap_visualizer import (\n",
+    "    create_tree_explainer,\n",
+    "    compute_shap_values,\n",
+    "    plot_shap_summary\n",
     ")\n",
     "from src.visualization.temporal_shap import (\n",
     "    compute_yearly_shap_importance,\n",
-    "    plot_temporal_feature_drift,\n",
-    "    get_top_features_by_year\n",
+    "    plot_temporal_feature_drift\n",
     ")\n",
-    "from src.evaluation.drift_analysis import (\n",
-    "    compute_feature_drift\n",
+    "from src.visualization.save_figures import (\n",
+    "    save_current_figure\n",
     ")"
    ]
   },
@@ -65,7 +79,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 2 — Load + Prepare Dataset"
+    "## Cell 2 — Load and Prepare Dataset"
    ]
   },
   {
@@ -95,14 +109,92 @@ notebook_content = {
     "\n",
     "print(f\"✓ Data prepared successfully!\")\n",
     "print(f\"  Training set (SMOTE): {X_train_smote.shape}\")\n",
-    "print(f\"  Test set: {X_test.shape}\")"
+    "print(f\"  Test set: {X_test.shape}\")\n",
+    "print(f\"  Features: {X_train.shape[1]}\")"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 3 — Train XGBoost"
+    "## Cell 3 — Initialize Comparison Engine"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "comparison_engine = ModelComparison()\n",
+    "print(\"✓ Model comparison engine initialized\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 4 — Logistic Regression"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "log_model = train_logistic_regression(\n",
+    "    X_train_smote,\n",
+    "    y_train_smote\n",
+    ")\n",
+    "log_preds, log_probs = generate_predictions(\n",
+    "    log_model,\n",
+    "    X_test\n",
+    ")\n",
+    "comparison_engine.add_model_result(\n",
+    "    \"Logistic Regression\",\n",
+    "    y_test,\n",
+    "    log_preds,\n",
+    "    log_probs\n",
+    ")\n",
+    "print(\"✓ Logistic Regression completed\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 5 — Random Forest"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "rf_model = train_random_forest(\n",
+    "    X_train_smote,\n",
+    "    y_train_smote\n",
+    ")\n",
+    "rf_preds, rf_probs = generate_predictions(\n",
+    "    rf_model,\n",
+    "    X_test\n",
+    ")\n",
+    "comparison_engine.add_model_result(\n",
+    "    \"Random Forest\",\n",
+    "    y_test,\n",
+    "    rf_preds,\n",
+    "    rf_probs\n",
+    ")\n",
+    "print(\"✓ Random Forest completed\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 6 — XGBoost"
    ]
   },
   {
@@ -115,15 +207,168 @@ notebook_content = {
     "    X_train_smote,\n",
     "    y_train_smote\n",
     ")\n",
-    "\n",
-    "print(\"✓ XGBoost model trained successfully\")"
+    "xgb_preds, xgb_probs = generate_predictions(\n",
+    "    xgb_model,\n",
+    "    X_test\n",
+    ")\n",
+    "comparison_engine.add_model_result(\n",
+    "    \"XGBoost\",\n",
+    "    y_test,\n",
+    "    xgb_preds,\n",
+    "    xgb_probs\n",
+    ")\n",
+    "print(\"✓ XGBoost completed\")"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 4 — Feature Columns"
+    "## Cell 7 — LightGBM"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "lgbm_model = train_lightgbm(\n",
+    "    X_train_smote,\n",
+    "    y_train_smote\n",
+    ")\n",
+    "lgbm_preds, lgbm_probs = generate_predictions(\n",
+    "    lgbm_model,\n",
+    "    X_test\n",
+    ")\n",
+    "comparison_engine.add_model_result(\n",
+    "    \"LightGBM\",\n",
+    "    y_test,\n",
+    "    lgbm_preds,\n",
+    "    lgbm_probs\n",
+    ")\n",
+    "print(\"✓ LightGBM completed\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 8 — CatBoost"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "cat_model = train_catboost(\n",
+    "    X_train_smote,\n",
+    "    y_train_smote\n",
+    ")\n",
+    "cat_preds, cat_probs = generate_predictions(\n",
+    "    cat_model,\n",
+    "    X_test\n",
+    ")\n",
+    "comparison_engine.add_model_result(\n",
+    "    \"CatBoost\",\n",
+    "    y_test,\n",
+    "    cat_preds,\n",
+    "    cat_probs\n",
+    ")\n",
+    "print(\"✓ CatBoost completed\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 9 — Comparison Table"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "comparison_df = comparison_engine.get_comparison_table()\n",
+    "comparison_df"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 10 — Save Comparison Table"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "comparison_engine.save_results()\n",
+    "print(\"✓ Model comparison results saved to reports/tables/\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 11 — SHAP Analysis"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_shap_sample = X_test.sample(\n",
+    "    n=1000,\n",
+    "    random_state=42\n",
+    ")\n",
+    "explainer = create_tree_explainer(\n",
+    "    xgb_model\n",
+    ")\n",
+    "shap_explanation, shap_values = compute_shap_values(\n",
+    "    explainer,\n",
+    "    X_shap_sample\n",
+    ")\n",
+    "print(\"✓ SHAP analysis completed\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 12 — SHAP Summary Plot"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot_shap_summary(\n",
+    "    shap_values,\n",
+    "    X_shap_sample\n",
+    ")\n",
+    "save_current_figure(\n",
+    "    \"shap_summary_plot.png\"\n",
+    ")\n",
+    "print(\"✓ SHAP summary plot saved to reports/figures/\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 13 — Temporal SHAP"
    ]
   },
   {
@@ -133,51 +378,21 @@ notebook_content = {
    "outputs": [],
    "source": [
     "feature_columns = X_train.columns.tolist()\n",
-    "feature_columns[:10]"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 5 — Compute Yearly SHAP Importance"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
     "yearly_shap_df = compute_yearly_shap_importance(\n",
     "    model=xgb_model,\n",
     "    df=df,\n",
     "    feature_columns=feature_columns,\n",
+    "    encoders=encoders,\n",
     "    sample_size=300\n",
     ")\n",
-    "yearly_shap_df.head()"
+    "print(\"✓ Temporal SHAP analysis completed\")"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 6 — IMPORTANT RESEARCH INSIGHT\n",
-    "\n",
-    "> **We use smaller yearly SHAP samples because:**\n",
-    "> \n",
-    "> Temporal SHAP is computationally expensive.\n",
-    "> \n",
-    "> Research practicality matters.\n",
-    "> \n",
-    "> *\"Better to have approximate answers than exact but late ones.\"*"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 7 — Plot Temporal Feature Drift"
+    "## Cell 14 — Temporal Drift Plot"
    ]
   },
   {
@@ -189,79 +404,18 @@ notebook_content = {
     "plot_temporal_feature_drift(\n",
     "    yearly_shap_df,\n",
     "    top_n=5\n",
-    ")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 8 — What You Should Observe\n",
-    "\n",
-    "**Some features may remain stable.**\n",
-    "\n",
-    "**Others may drift significantly.**\n",
-    "\n",
-    "| Feature | Behavior |\n",
-    "|---------|----------|\n",
-    "| Night Driving | stable |\n",
-    "| Visibility | increasing |\n",
-    "| Weather | fluctuating |\n",
-    "\n",
-    "---\n",
-    "\n",
-    "**This becomes publishable insight.**\n",
-    "\n",
-    "Understanding *why* features drift can lead to:\n",
-    "- Better model retraining strategies\n",
-    "- Domain-specific insights about changing conditions\n",
-    "- Improved feature engineering"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 9 — Drift Analysis Table"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "drift_df = compute_feature_drift(\n",
-    "    yearly_shap_df\n",
     ")\n",
-    "drift_df.head(15)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 10 — Top Features By Year"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "top_features = get_top_features_by_year(\n",
-    "    yearly_shap_df,\n",
-    "    top_n=5\n",
+    "save_current_figure(\n",
+    "    \"temporal_shap_drift.png\"\n",
     ")\n",
-    "top_features"
+    "print(\"✓ Temporal drift plot saved to reports/figures/\")"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Optional Cell 11 — Drift Visualization Heatmap"
+    "## Cell 15 — Save Temporal SHAP Table"
    ]
   },
   {
@@ -270,32 +424,18 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "import matplotlib.pyplot as plt\n",
-    "import seaborn as sns\n",
-    "\n",
-    "# Pivot table for heatmap\n",
-    "pivot_df = yearly_shap_df.pivot(\n",
-    "    index='feature', \n",
-    "    columns='year', \n",
-    "    values='mean_shap'\n",
+    "yearly_shap_df.to_csv(\n",
+    "    \"reports/tables/yearly_shap_importance.csv\",\n",
+    "    index=False\n",
     ")\n",
-    "\n",
-    "# Plot heatmap\n",
-    "plt.figure(figsize=(12, 8))\n",
-    "sns.heatmap(pivot_df.head(10), annot=True, fmt='.3f', cmap='RdBu_r', center=0)\n",
-    "plt.title('Feature Importance Heatmap Over Time (Top 10 Features)', \n",
-    "          fontsize=14, fontweight='bold')\n",
-    "plt.xlabel('Year')\n",
-    "plt.ylabel('Feature')\n",
-    "plt.tight_layout()\n",
-    "plt.show()"
+    "print(\"Temporal SHAP table saved successfully to reports/tables/\")"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Optional Cell 12 — Stability Score Analysis"
+    "## Optional Cell 16 — Generate Final Report Summary"
    ]
   },
   {
@@ -304,17 +444,34 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "# Calculate stability score (inverse of coefficient of variation)\n",
-    "stability_df = yearly_shap_df.groupby('feature')['mean_shap'].agg(['mean', 'std'])\n",
-    "stability_df['cv'] = stability_df['std'] / stability_df['mean']\n",
-    "stability_df['stability_score'] = 1 / stability_df['cv']\n",
-    "stability_df = stability_df.sort_values('stability_score', ascending=False)\n",
+    "# Print final summary\n",
+    "print(\"\\n\" + \"=\"*60)\n",
+    "print(\"FINAL PIPELINE EXECUTION SUMMARY\")\n",
+    "print(\"=\"*60)\n",
     "\n",
-    "print(\"Feature Stability Scores (higher = more stable):\")\n",
-    "print(stability_df[['mean', 'std', 'stability_score']].head(10))\n",
+    "# Best model\n",
+    "best_model = comparison_df.iloc[0]['Model']\n",
+    "best_f1 = comparison_df.iloc[0]['F1 Score (Weighted)']\n",
+    "print(f\"\\n🏆 Best Model: {best_model}\")\n",
+    "print(f\"   Weighted F1 Score: {best_f1:.4f}\")\n",
     "\n",
-    "print(\"\\n\\nMost Unstable Features (potential drift):\")\n",
-    "print(stability_df[['mean', 'std', 'stability_score']].tail(10))"
+    "# Top 3 features from SHAP\n",
+    "print(f\"\\n📊 Top 3 Most Important Features (from SHAP):\")\n",
+    "top_features = compute_mean_shap_importance(shap_values, X_shap_sample)\n",
+    "for i, row in top_features.head(3).iterrows():\n",
+    "    print(f\"   {i+1}. {row['Feature']}: {row['Mean |SHAP Value|']:.4f}\")\n",
+    "\n",
+    "# Temporal drift insights\n",
+    "print(f\"\\n⏰ Temporal Drift Insights:\")\n",
+    "from src.evaluation.drift_analysis import compute_feature_drift\n",
+    "drift_df = compute_feature_drift(yearly_shap_df)\n",
+    "increasing = drift_df[drift_df['drift_category'] == 'increasing'].head(3)\n",
+    "for _, row in increasing.iterrows():\n",
+    "    print(f\"   ↑ {row['feature']}: trend = {row['trend_coefficient']:.4f}\")\n",
+    "\n",
+    "print(\"\\n\" + \"=\"*60)\n",
+    "print(\"✓ All results saved to reports/ directory\")\n",
+    "print(\"=\"*60)"
    ]
   }
  ],
@@ -345,19 +502,22 @@ notebook_content = {
 os.makedirs('notebooks', exist_ok=True)
 
 # Save the notebook
-with open('notebooks/07_temporal_shap_analysis.ipynb', 'w') as f:
+with open('notebooks/08_final_pipeline.ipynb', 'w') as f:
     json.dump(notebook_content, f, indent=1)
 
-print("✓ Notebook created successfully at notebooks/07_temporal_shap_analysis.ipynb")
+print("✓ Notebook created successfully at notebooks/08_final_pipeline.ipynb")
 print("\n📋 This notebook requires the following modules to be implemented:")
 print("  - src/data/preprocessing.py (basic_preprocessing_pipeline)")
 print("  - src/features/feature_engineering.py (feature_engineering_pipeline)")
 print("  - src/features/encoder.py (encode_categorical_columns)")
 print("  - src/models/train_test_split.py (temporal split functions)")
 print("  - src/models/smote_pipeline.py (apply_smote)")
-print("  - src/models/boosting_models.py (train_xgboost)")
+print("  - src/models/boosting_models.py (train_xgboost, train_lightgbm, train_catboost)")
+print("  - src/models/baseline_models.py (train_logistic_regression, train_random_forest, generate_predictions)")
+print("  - src/evaluation/model_comparison.py (ModelComparison class)")
+print("  - src/visualization/shap_visualizer.py (SHAP visualization functions)")
 print("  - src/visualization/temporal_shap.py (temporal SHAP functions)")
-print("  - src/evaluation/drift_analysis.py (compute_feature_drift)")
+print("  - src/visualization/save_figures.py (save_current_figure)")
 print("\n⚠️  Make sure to install required packages:")
-print("  pip install shap xgboost pandas matplotlib seaborn")
+print("  pip install xgboost lightgbm catboost scikit-learn imbalanced-learn shap pandas matplotlib seaborn")
 print("\n⚠️  Make sure to create these modules before running the notebook!")
