@@ -7,8 +7,8 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Notebook 06: SHAP Analysis\n",
-    "Model interpretability using SHAP (SHapley Additive exPlanations)"
+    "# Notebook 07: Temporal SHAP Analysis\n",
+    "Analyzing how feature importance changes over time (feature drift analysis)"
    ]
   },
   {
@@ -27,7 +27,6 @@ notebook_content = {
     "import sys\n",
     "from pathlib import Path\n",
     "sys.path.append(str(Path().resolve().parent))\n",
-    "import pandas as pd\n",
     "from src.data.data_loader import (\n",
     "    load_config,\n",
     "    load_dataset,\n",
@@ -52,15 +51,13 @@ notebook_content = {
     "from src.models.boosting_models import (\n",
     "    train_xgboost\n",
     ")\n",
-    "from src.visualization.shap_visualizer import (\n",
-    "    create_tree_explainer,\n",
-    "    compute_shap_values,\n",
-    "    plot_shap_summary,\n",
-    "    plot_shap_dependence,\n",
-    "    plot_shap_waterfall\n",
+    "from src.visualization.temporal_shap import (\n",
+    "    compute_yearly_shap_importance,\n",
+    "    plot_temporal_feature_drift,\n",
+    "    get_top_features_by_year\n",
     ")\n",
-    "from src.evaluation.feature_importance import (\n",
-    "    compute_mean_shap_importance\n",
+    "from src.evaluation.drift_analysis import (\n",
+    "    compute_feature_drift\n",
     ")"
    ]
   },
@@ -126,7 +123,7 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 4 — Create SHAP Sample"
+    "## Cell 4 — Feature Columns"
    ]
   },
   {
@@ -135,31 +132,52 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "X_shap_sample = X_test.sample(\n",
-    "    n=1000,\n",
-    "    random_state=42\n",
-    ")\n",
-    "X_shap_sample.shape"
+    "feature_columns = X_train.columns.tolist()\n",
+    "feature_columns[:10]"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 5 — IMPORTANT RESEARCH INSIGHT\n",
+    "## Cell 5 — Compute Yearly SHAP Importance"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "yearly_shap_df = compute_yearly_shap_importance(\n",
+    "    model=xgb_model,\n",
+    "    df=df,\n",
+    "    feature_columns=feature_columns,\n",
+    "    sample_size=300\n",
+    ")\n",
+    "yearly_shap_df.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 6 — IMPORTANT RESEARCH INSIGHT\n",
     "\n",
-    "> **Never compute SHAP on entire huge datasets initially.**\n",
+    "> **We use smaller yearly SHAP samples because:**\n",
     "> \n",
-    "> SHAP is computationally expensive.\n",
+    "> Temporal SHAP is computationally expensive.\n",
     "> \n",
-    "> Sampling is common and acceptable practice."
+    "> Research practicality matters.\n",
+    "> \n",
+    "> *\"Better to have approximate answers than exact but late ones.\"*"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 6 — Create Explainer"
+    "## Cell 7 — Plot Temporal Feature Drift"
    ]
   },
   {
@@ -168,50 +186,9 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "explainer = create_tree_explainer(\n",
-    "    xgb_model\n",
-    ")\n",
-    "\n",
-    "print(\"✓ SHAP TreeExplainer created\")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 7 — Compute SHAP Values"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "shap_values = compute_shap_values(\n",
-    "    explainer,\n",
-    "    X_shap_sample\n",
-    ")\n",
-    "\n",
-    "print(\"✓ SHAP values computed successfully\")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 8 — SHAP Summary Plot"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "plot_shap_summary(\n",
-    "    shap_values,\n",
-    "    X_shap_sample\n",
+    "plot_temporal_feature_drift(\n",
+    "    yearly_shap_df,\n",
+    "    top_n=5\n",
     ")"
    ]
   },
@@ -219,108 +196,33 @@ notebook_content = {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Cell 9 — What You Should Observe\n",
+    "## Cell 8 — What You Should Observe\n",
     "\n",
-    "**Features at top are most influential.**\n",
+    "**Some features may remain stable.**\n",
     "\n",
-    "| Color | Meaning |\n",
-    "|-------|---------|\n",
-    "| Red | high feature value |\n",
-    "| Blue | low feature value |\n",
+    "**Others may drift significantly.**\n",
     "\n",
-    "**Horizontal spread shows impact magnitude.**"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 10 — Feature Importance Table"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "importance_df = compute_mean_shap_importance(\n",
-    "    shap_values,\n",
-    "    X_shap_sample\n",
-    ")\n",
-    "importance_df.head(15)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 11 — Dependence Plot"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "plot_shap_dependence(\n",
-    "    shap_values,\n",
-    "    X_shap_sample,\n",
-    "    feature_name=\"Visibility(mi)\"\n",
-    ")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 12 — What Dependence Plot Means\n",
-    "\n",
-    "You are analyzing:\n",
-    "\n",
-    "**How changing visibility changes model prediction**\n",
-    "\n",
-    "This becomes scientifically interesting.\n",
+    "| Feature | Behavior |\n",
+    "|---------|----------|\n",
+    "| Night Driving | stable |\n",
+    "| Visibility | increasing |\n",
+    "| Weather | fluctuating |\n",
     "\n",
     "---\n",
     "\n",
-    "**Interpretation Guide:**\n",
-    "- X-axis: Feature value (Visibility in miles)\n",
-    "- Y-axis: SHAP value (Impact on prediction)\n",
-    "- Positive SHAP: Increases accident severity\n",
-    "- Negative SHAP: Decreases accident severity\n",
-    "- Color (if shown): Secondary feature interaction"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Cell 13 — Local Explanation"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": None,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "plot_shap_waterfall(\n",
-    "    explainer,\n",
-    "    shap_values,\n",
-    "    X_shap_sample,\n",
-    "    sample_index=0\n",
-    ")"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Optional Cell 14 — Additional SHAP Analysis\n",
+    "**This becomes publishable insight.**\n",
     "\n",
-    "Explore more SHAP visualizations"
+    "Understanding *why* features drift can lead to:\n",
+    "- Better model retraining strategies\n",
+    "- Domain-specific insights about changing conditions\n",
+    "- Improved feature engineering"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 9 — Drift Analysis Table"
    ]
   },
   {
@@ -329,19 +231,90 @@ notebook_content = {
    "metadata": {},
    "outputs": [],
    "source": [
-    "# Bar plot of feature importance\n",
+    "drift_df = compute_feature_drift(\n",
+    "    yearly_shap_df\n",
+    ")\n",
+    "drift_df.head(15)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cell 10 — Top Features By Year"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "top_features = get_top_features_by_year(\n",
+    "    yearly_shap_df,\n",
+    "    top_n=5\n",
+    ")\n",
+    "top_features"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Optional Cell 11 — Drift Visualization Heatmap"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
     "import matplotlib.pyplot as plt\n",
-    "import shap\n",
+    "import seaborn as sns\n",
     "\n",
-    "# Summary bar plot\n",
-    "shap.summary_plot(shap_values, X_shap_sample, plot_type=\"bar\")\n",
+    "# Pivot table for heatmap\n",
+    "pivot_df = yearly_shap_df.pivot(\n",
+    "    index='feature', \n",
+    "    columns='year', \n",
+    "    values='mean_shap'\n",
+    ")\n",
+    "\n",
+    "# Plot heatmap\n",
+    "plt.figure(figsize=(12, 8))\n",
+    "sns.heatmap(pivot_df.head(10), annot=True, fmt='.3f', cmap='RdBu_r', center=0)\n",
+    "plt.title('Feature Importance Heatmap Over Time (Top 10 Features)', \n",
+    "          fontsize=14, fontweight='bold')\n",
+    "plt.xlabel('Year')\n",
+    "plt.ylabel('Feature')\n",
     "plt.tight_layout()\n",
-    "plt.show()\n",
-    "\n",
-    "# Force plot for first prediction\n",
-    "shap.initjs()\n",
-    "shap.force_plot(explainer.expected_value, shap_values[0,:], X_shap_sample.iloc[0,:], matplotlib=True)\n",
     "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Optional Cell 12 — Stability Score Analysis"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Calculate stability score (inverse of coefficient of variation)\n",
+    "stability_df = yearly_shap_df.groupby('feature')['mean_shap'].agg(['mean', 'std'])\n",
+    "stability_df['cv'] = stability_df['std'] / stability_df['mean']\n",
+    "stability_df['stability_score'] = 1 / stability_df['cv']\n",
+    "stability_df = stability_df.sort_values('stability_score', ascending=False)\n",
+    "\n",
+    "print(\"Feature Stability Scores (higher = more stable):\")\n",
+    "print(stability_df[['mean', 'std', 'stability_score']].head(10))\n",
+    "\n",
+    "print(\"\\n\\nMost Unstable Features (potential drift):\")\n",
+    "print(stability_df[['mean', 'std', 'stability_score']].tail(10))"
    ]
   }
  ],
@@ -372,10 +345,10 @@ notebook_content = {
 os.makedirs('notebooks', exist_ok=True)
 
 # Save the notebook
-with open('notebooks/06_shap_analysis.ipynb', 'w') as f:
+with open('notebooks/07_temporal_shap_analysis.ipynb', 'w') as f:
     json.dump(notebook_content, f, indent=1)
 
-print("✓ Notebook created successfully at notebooks/06_shap_analysis.ipynb")
+print("✓ Notebook created successfully at notebooks/07_temporal_shap_analysis.ipynb")
 print("\n📋 This notebook requires the following modules to be implemented:")
 print("  - src/data/preprocessing.py (basic_preprocessing_pipeline)")
 print("  - src/features/feature_engineering.py (feature_engineering_pipeline)")
@@ -383,8 +356,8 @@ print("  - src/features/encoder.py (encode_categorical_columns)")
 print("  - src/models/train_test_split.py (temporal split functions)")
 print("  - src/models/smote_pipeline.py (apply_smote)")
 print("  - src/models/boosting_models.py (train_xgboost)")
-print("  - src/visualization/shap_visualizer.py (SHAP visualization functions)")
-print("  - src/evaluation/feature_importance.py (compute_mean_shap_importance)")
+print("  - src/visualization/temporal_shap.py (temporal SHAP functions)")
+print("  - src/evaluation/drift_analysis.py (compute_feature_drift)")
 print("\n⚠️  Make sure to install required packages:")
-print("  pip install shap xgboost")
+print("  pip install shap xgboost pandas matplotlib seaborn")
 print("\n⚠️  Make sure to create these modules before running the notebook!")
