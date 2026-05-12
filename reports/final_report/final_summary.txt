@@ -1,0 +1,17 @@
+============================================================
+ACCIDENTXAI FINAL REPORT
+============================================================
+
+Best Model: LightGBM
+Weighted F1 Score: 0.8744
+
+Top 5 SHAP Features:
+
+- Year: 1.380363
+- Weekday: 0.255342
+- Start_Lat: 0.248307
+- Rush_Hour: 0.239316
+- Start_Lng: 0.207054
+
+Temporal SHAP analysis completed successfully.
+Feature drift analysis exported.
