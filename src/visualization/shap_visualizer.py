@@ -29,16 +29,26 @@ def compute_shap_values(
     X_sample
 ):
     """
-    Compute SHAP values.
+    Compute SHAP values using modern SHAP API.
     """
 
     print("\nComputing SHAP values...\n")
 
-    shap_values = explainer.shap_values(X_sample)
+    # Modern SHAP API
+    shap_explanation = explainer(
+        X_sample
+    )
+
+    shap_values = shap_explanation.values
+
+    # Binary classification compatibility
+    if len(shap_values.shape) == 3:
+
+        shap_values = shap_values[:, :, 1]
 
     print("SHAP computation completed.\n")
 
-    return shap_values
+    return shap_explanation, shap_values
 
 
 def plot_shap_summary(
@@ -66,7 +76,10 @@ def plot_shap_dependence(
     Plot SHAP dependence plot.
     """
 
-    print(f"\nGenerating dependence plot for {feature_name}...\n")
+    print(
+        f"\nGenerating dependence plot for "
+        f"{feature_name}...\n"
+    )
 
     shap.dependence_plot(
         feature_name,
@@ -76,21 +89,19 @@ def plot_shap_dependence(
 
 
 def plot_shap_waterfall(
-    explainer,
-    shap_values,
-    X_sample,
+    shap_explanation,
     sample_index=0
 ):
     """
-    Plot SHAP waterfall plot for local explanation.
+    Plot local SHAP waterfall explanation.
     """
 
-    print("\nGenerating SHAP waterfall plot...\n")
+    print(
+        "\nGenerating SHAP waterfall plot...\n"
+    )
 
-    shap.plots._waterfall.waterfall_legacy(
-        explainer.expected_value,
-        shap_values[sample_index],
-        X_sample.iloc[sample_index]
+    shap.plots.waterfall(
+        shap_explanation[sample_index]
     )
 
     plt.show()
