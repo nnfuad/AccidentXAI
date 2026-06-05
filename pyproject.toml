@@ -1,0 +1,32 @@
+[project]
+name = "AccidentXAI"
+version = "0.1.0"
+description = "Temporal SHAP Explainability Analysis for Traffic Accident Severity Prediction"
+authors = [
+    { name = "Fuad" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = [
+    "pandas",
+    "numpy<2",
+    "scikit-learn",
+    "matplotlib",
+    "seaborn",
+    "xgboost",
+    "lightgbm",
+    "catboost",
+    "shap",
+    "imbalanced-learn",
+    "jupyter",
+    "pyyaml",
+    "joblib"
+]
+
+[tool.setuptools]
+packages = ["src"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
