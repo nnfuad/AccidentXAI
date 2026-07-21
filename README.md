@@ -138,12 +138,14 @@ Temporal SHAP Interpretation
 
 Designed for:
 
-- MacBook Air M1
 - Python 3.11+
 - Jupyter Notebook
 - Google Colab compatibility
 
 ---
+
+# Author
+[Nur Nafis Fuad](linkedin.com/in/nnfuad01)
 
 # License
 
